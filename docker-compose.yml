@@ -1,0 +1,39 @@
+services:
+  auth-db:
+    image: mysql:8.0  # Imagen oficial de MySQL
+    container_name: DB-AUTH
+    environment:
+      MYSQL_ROOT_PASSWORD: ${AUTH_PASSWORD}  # Contraseña para el usuario root desde .env
+      MYSQL_DATABASE: ${AUTH_NAME}  # Nombre de la base de datos desde .env
+    ports:
+      - "3308:3306"  # Puerto del host 3307 mapeado al puerto 3306 del contenedor
+    volumes:
+      - mysql_auth_data:/var/lib/mysql  # Persistencia de datos
+    networks:
+      - app_network  # Asegúrate de que la app y la base de datos están en la misma red
+
+  app:
+    build:
+      context: .  # Carpeta de la aplicación
+      dockerfile: Dockerfile  # Asegúrate de que el Dockerfile esté bien configurado
+    container_name: AUTH-SERVICE
+    environment:
+      - AUTH_ROOT=${AUTH_ROOT}  # Usuario de MySQL desde .env
+      - AUTH_PASSWORD=${AUTH_PASSWORD}  # Contraseña de MySQL desde .env
+      - AUTH_HOST=${AUTH_HOST}  # Host de la base de datos
+      - AUTH_PORT=${AUTH_PORT}  # Puerto de la base de datos
+      - AUTH_NAME=${AUTH_NAME}  # Nombre de la base de datos
+    depends_on:
+      - auth-db
+    ports:
+      - "8084:8084"  # Exponer el puerto de tu app Go
+    networks:
+      - app_network  # Esta línea asegura que la app está en la misma red que MySQL
+
+volumes:
+  mysql_auth_data:
+    driver: local  # Volumen local para persistencia de datos de MySQL
+
+networks:
+  app_network:
+    driver: bridge  # La red tipo bridge asegura que todos los servicios puedan comunicarse entre sí
